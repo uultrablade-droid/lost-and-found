@@ -1,0 +1,17 @@
+{
+    // Enable Tab to accept suggestions
+    "editor.tabCompletion": "on",
+    "editor.acceptSuggestionOnCommitCharacter": true,
+    "editor.suggestSelection": "first",
+    
+    // Python-specific settings
+    "python.analysis.autoImportCompletions": true,
+    "python.analysis.completeFunctionParens": true,
+    
+    // Jupyter notebook settings
+    "jupyter.askForKernelRestart": false,
+    "notebook.cellToolbarLocation": {
+        "default": "right",
+        "jupyter-notebook": "left"
+    }
+}
