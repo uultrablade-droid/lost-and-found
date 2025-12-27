@@ -1,0 +1,7 @@
+item_number,item_name,item_description,item_image,item_contact_type,item_contact,item_location,item_date_start,item_date_end,item_status
+1,Blue Backpack,"Blue Nike backpack lost near the cafeteria. Contains textbooks and a laptop.",https://images.unsplash.com/photo-1553062407-98eeb64c6a62?auto=format&fit=crop&w=400&q=80,email,student@uni.edu,Cafeteria,2025-12-10,2025-12-10,lost
+2,Water Bottle,"Metal water bottle, black color. Found in library room 302.",https://images.unsplash.com/photo-1602143407151-11115cdbf69c?auto=format&fit=crop&w=400&q=80,office,A Building Office,Library Room 302,2025-12-11,2025-12-11,found
+3,iPhone 13,"Black iPhone 13 with a clear case. Lock screen has a picture of a cat.",https://images.unsplash.com/photo-1510557880182-3d4d3cba35a5?auto=format&fit=crop&w=400&q=80,phone,0812345678,Science Building Hallway,2025-12-12,2025-12-12,lost
+4,Car Keys,"Honda car keys with a red keychain.",https://images.unsplash.com/photo-1582139329536-e7284fece509?auto=format&fit=crop&w=400&q=80,office,H Building Office,Parking Lot B,2025-12-11,2025-12-11,found
+5,Textbook,"Calculus 101 textbook. Left in lecture hall A.",https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?auto=format&fit=crop&w=400&q=80,email,math_prof@uni.edu,Lecture Hall A,2025-12-09,2025-12-09,found
+6,Wallet,"Brown leather wallet containing ID card. Name on ID: John Doe.",https://images.unsplash.com/photo-1627123424574-181ce5171c98?auto=format&fit=crop&w=400&q=80,phone,0898765432,Gym Locker Room,2025-12-13,2025-12-13,lost

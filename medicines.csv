@@ -1,0 +1,9 @@
+name,category,milligrams,lots,sold,left,description,price,lot_number,expiry_date,image_url
+Paracetamol,Pain Relief,500mg,50,1200,5000,Standard relief for pain and fever,1.50,LOT-2023-001,2025-12-31,https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?auto=format&fit=crop&w=400&q=80
+Amoxicillin,Antibiotics,250mg,20,500,2000,Broad-spectrum antibiotic for infections,5.00,LOT-2023-002,2024-06-30,https://images.unsplash.com/photo-1471864190276-a94641e0a8c8?auto=format&fit=crop&w=400&q=80
+Ibuprofen,Anti-inflammatory,400mg,35,800,3500,Non-steroidal anti-inflammatory drug,2.25,LOT-2023-003,2025-08-15,https://images.unsplash.com/photo-1550572017-e7b5790be4bd?auto=format&fit=crop&w=400&q=80
+Cetirizine,Antihistamine,10mg,40,900,4100,Relief from allergy symptoms like hay fever,3.00,LOT-2023-004,2026-01-20,https://images.unsplash.com/photo-1628771065518-0d82f1938462?auto=format&fit=crop&w=400&q=80
+Aspirin,Pain Relief,100mg,25,300,2200,Pain reliever and anti-inflammatory,1.00,LOT-2023-005,2024-11-10,https://images.unsplash.com/photo-1598440947619-2c35fc9aa908?auto=format&fit=crop&w=400&q=80
+Omeprazole,Antacid,20mg,30,400,2600,Treats acid reflux and ulcers,4.50,LOT-2023-006,2025-03-25,https://images.unsplash.com/photo-1631549916768-4119b2e5f926?auto=format&fit=crop&w=400&q=80
+Metformin,Diabetes,500mg,45,1500,6000,First-line medication for type 2 diabetes,0.80,LOT-2023-007,2025-10-05,https://images.unsplash.com/photo-1579165466741-7f35a4755312?auto=format&fit=crop&w=400&q=80
+Vitamin C,Supplements,1000mg,60,2000,8000,Immune system support supplement,2.50,LOT-2023-008,2026-05-15,https://images.unsplash.com/photo-1584017911766-d451b3d0e843?auto=format&fit=crop&w=400&q=80
