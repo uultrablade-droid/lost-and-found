@@ -1,12 +1,6 @@
-streamlit,
-pandas,
-datetime,
-os,
-timedelta,
-pillow,
-pyotp,
-difflib,
-json,
-time,
-numpy,
+streamlit
+pandas
+numpy
+Pillow
+pyotp
 scikit-learn
