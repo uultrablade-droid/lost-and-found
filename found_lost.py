@@ -9,6 +9,7 @@ import pyotp
 import difflib
 import json
 import time
+from db_utils import get_supabase
 
 # Function to calculate relevance for fuzzy search
 def calculate_relevance(row, query):
@@ -156,32 +157,33 @@ st.markdown("""
 
 # Initialize session state
 if 'items_df' not in st.session_state:
-    if os.path.exists("database.csv"):
-        # Read CSV and strip whitespace from column names
-        st.session_state.items_df = pd.read_csv("database.csv")
-        st.session_state.items_df.columns = st.session_state.items_df.columns.str.strip()
-        # Also strip whitespace from string values
-        for col in st.session_state.items_df.select_dtypes(include=['object']).columns:
-            st.session_state.items_df[col] = st.session_state.items_df[col].astype(str).str.strip()
+    # Load from Supabase
+    try:
+        supabase = get_supabase()
+        response = supabase.table("items").select("*").execute()
+        df = pd.DataFrame(response.data)
         
-        # Handle backward compatibility - migrate old format to new format
-        if 'item_date' in st.session_state.items_df.columns:
-            if 'item_date_start' not in st.session_state.items_df.columns:
-                st.session_state.items_df['item_date_start'] = st.session_state.items_df['item_date']
-            if 'item_date_end' not in st.session_state.items_df.columns:
-                st.session_state.items_df['item_date_end'] = st.session_state.items_df['item_date']
+        # Ensure correct types
+        if not df.empty and 'item_number' in df.columns:
+             df['item_number'] = pd.to_numeric(df['item_number'], errors='coerce').fillna(0).astype(int)
+
+        st.session_state.items_df = df
         
-        if 'item_contact_type' not in st.session_state.items_df.columns:
-            st.session_state.items_df['item_contact_type'] = ''
-        
-        # Ensure all required columns exist
+        # Ensure columns exist (same logic as before)
         required_columns = ['item_number', 'item_name', 'item_description', 'item_image', 
                            'item_contact_type', 'item_contact', 'item_location', 
                            'item_date_start', 'item_date_end', 'item_status']
+        
         for col in required_columns:
             if col not in st.session_state.items_df.columns:
                 st.session_state.items_df[col] = ''
-    else:
+                
+        # String cleanup
+        for col in st.session_state.items_df.select_dtypes(include=['object']).columns:
+             st.session_state.items_df[col] = st.session_state.items_df[col].astype(str).str.strip()
+             
+    except Exception as e:
+        st.error(f"Failed to load database: {e}")
         st.session_state.items_df = pd.DataFrame(columns=[
             'item_number', 'item_name', 'item_description', 'item_image', 
             'item_contact_type', 'item_contact', 'item_location', 'item_date_start', 'item_date_end', 'item_status'
@@ -208,9 +210,17 @@ if 'admin_auth_stage' not in st.session_state:
 if 'expanded_items' not in st.session_state:
     st.session_state.expanded_items = set()
 
-# Function to save data to CSV
+# Function to save data to Supabase
 def save_to_csv(df):
-    df.to_csv("database.csv", index=False)
+    try:
+        supabase = get_supabase()
+        # Convert NaN to None for SQL
+        df_clean = df.where(pd.notnull(df), None)
+        records = df_clean.to_dict(orient='records')
+        # Upsert
+        supabase.table("items").upsert(records, on_conflict="item_number").execute()
+    except Exception as e:
+        st.error(f"Failed to save to database: {e}")
 
 # Function to get next item number
 def get_next_item_number(df):
@@ -417,34 +427,24 @@ tab1, tab2, tab3, tab4 = st.tabs(["Lost", "All", "Found", "Archive"])
 
 # Filter items based on selected tab
 # Reload from CSV to ensure we have latest data
-if os.path.exists("database.csv"):
-    df = pd.read_csv("database.csv")
-    df.columns = df.columns.str.strip()
-    # Strip whitespace from string values
-    for col in df.select_dtypes(include=['object']).columns:
-        df[col] = df[col].astype(str).str.strip()
+# Reload from DB logic (Secondary)
+try:
+    supabase = get_supabase()
+    response = supabase.table("items").select("*").execute()
+    df = pd.DataFrame(response.data)
     
-    # Handle backward compatibility - migrate old format to new format
-    if 'item_date' in df.columns:
-        if 'item_date_start' not in df.columns:
-            df['item_date_start'] = df['item_date']
-        if 'item_date_end' not in df.columns:
-            df['item_date_end'] = df['item_date']
-    
-    if 'item_contact_type' not in df.columns:
-        df['item_contact_type'] = ''
-    
-    # Ensure all required columns exist
+    if not df.empty and 'item_number' in df.columns:
+        df['item_number'] = pd.to_numeric(df['item_number'], errors='coerce').fillna(0).astype(int)
+        
     required_columns = ['item_number', 'item_name', 'item_description', 'item_image', 
                        'item_contact_type', 'item_contact', 'item_location', 
                        'item_date_start', 'item_date_end', 'item_status']
     for col in required_columns:
         if col not in df.columns:
             df[col] = ''
-    
-    # Update session state
+            
     st.session_state.items_df = df.copy()
-else:
+except:
     df = st.session_state.items_df.copy()
 
 # Admin authentication UI (top)

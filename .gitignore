@@ -1,0 +1,10 @@
+# Streamlit secrets
+.streamlit/secrets.toml
+*.toml
+
+# Python
+__pycache__/
+*.pyc
+
+# Local data (optional, since we migrated to cloud)
+# database.csv 
