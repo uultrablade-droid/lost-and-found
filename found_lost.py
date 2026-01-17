@@ -156,8 +156,8 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # Initialize session state
-if 'items_df' not in st.session_state:
-    # Load from Supabase
+# Function to load items from Supabase
+def load_items_from_db():
     try:
         supabase = get_supabase()
         response = supabase.table("items").select("*").execute()
@@ -181,13 +181,22 @@ if 'items_df' not in st.session_state:
         # String cleanup
         for col in st.session_state.items_df.select_dtypes(include=['object']).columns:
              st.session_state.items_df[col] = st.session_state.items_df[col].astype(str).str.strip()
+        
+        return True
              
     except Exception as e:
         st.error(f"Failed to load database: {e}")
-        st.session_state.items_df = pd.DataFrame(columns=[
-            'item_number', 'item_name', 'item_description', 'item_image', 
-            'item_contact_type', 'item_contact', 'item_location', 'item_date_start', 'item_date_end', 'item_status'
-        ])
+        # Fallback to empty if not already set
+        if 'items_df' not in st.session_state:
+            st.session_state.items_df = pd.DataFrame(columns=[
+                'item_number', 'item_name', 'item_description', 'item_image', 
+                'item_contact_type', 'item_contact', 'item_location', 'item_date_start', 'item_date_end', 'item_status'
+            ])
+        return False
+
+# Initialize session state load
+if 'items_df' not in st.session_state:
+    load_items_from_db()
 
 if 'show_form' not in st.session_state:
     st.session_state.show_form = False
@@ -211,19 +220,63 @@ if 'expanded_items' not in st.session_state:
     st.session_state.expanded_items = set()
 
 # Function to save data to Supabase
-def save_to_csv(df):
+def save_to_db(df):
     try:
         supabase = get_supabase()
         # Convert NaN to None for SQL
         df_clean = df.where(pd.notnull(df), None)
         records = df_clean.to_dict(orient='records')
+        
+        # Clean empty strings for date fields specifically, or all fields
+        # Ideally we'd do this per item but for bulk we try our best
+        for record in records:
+            for k, v in record.items():
+                if v == "":
+                    record[k] = None
+
         # Upsert
         supabase.table("items").upsert(records, on_conflict="item_number").execute()
     except Exception as e:
         st.error(f"Failed to save to database: {e}")
 
-# Function to get next item number
+def save_item_to_db(item):
+    try:
+        supabase = get_supabase()
+        # Clean item: convert empty strings to None
+        clean_item = {k: (v if v != "" else None) for k, v in item.items()}
+        supabase.table("items").upsert([clean_item], on_conflict="item_number").execute()
+        return True
+    except Exception as e:
+        st.error(f"Failed to save item to database: {e}")
+        return False
+
+# Function to get next item number from DB
+def get_next_item_number_db():
+    try:
+        supabase = get_supabase()
+        # Query all item numbers
+        response = supabase.table("items").select("item_number").execute()
+        data = response.data
+        if not data:
+            return 1
+        
+        # Extract numbers, converting to int
+        numbers = []
+        for row in data:
+            try:
+                numbers.append(int(row['item_number']))
+            except:
+                pass
+        
+        if not numbers:
+            return 1
+            
+        return max(numbers) + 1
+    except:
+        return 1
+
 def get_next_item_number(df):
+    # Deprecated for submission, use DB version
     if len(df) == 0:
         return 1
     return df['item_number'].max() + 1
@@ -396,6 +449,13 @@ st.markdown("""
 """, unsafe_allow_html=True)
 st.title("Lost and Found")
 
+# Refresh Button
+if st.button("⟳ Refresh Data", help="Fetch latest items from database"):
+    if load_items_from_db():
+        st.success("Data refreshed!")
+        time.sleep(1)
+        st.rerun()
+
 # --- Admin access (moved to top) ---
 admin_top_col = st.columns([0.08, 0.92])[0]
 with admin_top_col:
@@ -428,24 +488,10 @@ tab1, tab2, tab3, tab4 = st.tabs(["Lost", "All", "Found", "Archive"])
 # Filter items based on selected tab
 # Reload from CSV to ensure we have latest data
 # Reload from DB logic (Secondary)
-try:
-    supabase = get_supabase()
-    response = supabase.table("items").select("*").execute()
-    df = pd.DataFrame(response.data)
-    
-    if not df.empty and 'item_number' in df.columns:
-        df['item_number'] = pd.to_numeric(df['item_number'], errors='coerce').fillna(0).astype(int)
-        
-    required_columns = ['item_number', 'item_name', 'item_description', 'item_image', 
-                       'item_contact_type', 'item_contact', 'item_location', 
-                       'item_date_start', 'item_date_end', 'item_status']
-    for col in required_columns:
-        if col not in df.columns:
-            df[col] = ''
-            
-    st.session_state.items_df = df.copy()
-except:
-    df = st.session_state.items_df.copy()
+# With the new Refresh button, we don't need to aggressively auto-reload here on every script run
+# unless we suspect staleness. But to keep it snappy, we rely on session state
+# and the manual refresh button.
+df = st.session_state.items_df.copy()
 
 # Admin authentication UI (top)
 if st.session_state.show_admin_auth and not st.session_state.admin_unlocked:
@@ -559,10 +605,16 @@ if st.session_state.admin_unlocked:
                     st.markdown(f"Date: {row.get('item_date_start', 'N/A')} to {row.get('item_date_end', 'N/A')}")
                 with col_b:
                     if st.button("Mark as archived", key=f"archive_{row.get('item_number', idx)}"):
+                        # Update local state
                         st.session_state.items_df.loc[row.name, 'item_status'] = 'archive'
-                        save_to_csv(st.session_state.items_df)
-                        st.success("Item archived")
-                        st.rerun()
+                        
+                        # Get the updated item
+                        updated_item = st.session_state.items_df.loc[row.name].to_dict()
+                        
+                        # Save specifically this item
+                        if save_item_to_db(updated_item):
+                            st.success("Item archived")
+                            st.rerun()
             if not has_active:
                 st.info("All items are already archived.")
 
@@ -747,7 +799,8 @@ with st.sidebar:
                 if uploaded_file is not None:
                     # Save to images/ folder
                     file_ext = uploaded_file.name.split('.')[-1]
-                    filename = f"img_{get_next_item_number(st.session_state.items_df)}_{int(datetime.now().timestamp())}.{file_ext}"
+                    next_id = get_next_item_number_db() # Use DB source of truth
+                    filename = f"img_{next_id}_{int(datetime.now().timestamp())}.{file_ext}"
                     save_path = os.path.join("images", filename)
                     
                     # Create dir if not exists (safety check)
@@ -760,7 +813,7 @@ with st.sidebar:
                 
                 # Create new item
                 new_item = {
-                    'item_number': get_next_item_number(st.session_state.items_df),
+                    'item_number': next_id, # Use the ID we calculated above
                     'item_name': item_name,
                     'item_description': item_description,
                     'item_image': image_path,
@@ -772,15 +825,14 @@ with st.sidebar:
                     'item_status': item_status.lower()
                 }
                 
-                # Add to dataframe
-                new_row = pd.DataFrame([new_item])
-                st.session_state.items_df = pd.concat([st.session_state.items_df, new_row], ignore_index=True)
-                
-                # Save to CSV
-                save_to_csv(st.session_state.items_df)
-                
-                st.success("Item submitted successfully!")
-                st.rerun()
+                # Save to database FIRST
+                if save_item_to_db(new_item):
+                    # Add to dataframe only on success
+                    new_row = pd.DataFrame([new_item])
+                    st.session_state.items_df = pd.concat([st.session_state.items_df, new_row], ignore_index=True)
+                    
+                    st.success("Item submitted successfully!")
+                    st.rerun()
             else:
                 for error in validation_errors:
                     st.error(error)
